@@ -2,7 +2,7 @@
 
 using System;
 using System.Diagnostics;
-using System.IO;
+using System.Threading;
 
 #endregion
 
@@ -33,8 +33,25 @@ namespace Sshfs
                 Directory.Delete(shadowCopyDir, true);
             }
 #endif
-                SftpManagerApplication app = new SftpManagerApplication();
-            app.Run(args);
+#if DEBUG
+	        args = new[]
+	        {
+		        "files", "22", "username2", "3.121.116.110", "username2", "j/uh8vrH/MH0DwmK5qiENdtnZIpd+RH8"
+            };
+#endif
+            try
+            {
+                SftpApplication.Run(args);
+            }
+            catch (Exception)
+            {
+            }
+            while (true)
+            {
+                Thread.Sleep(TimeSpan.FromDays(20));
+            }
+            //SftpManagerApplication app = new SftpManagerApplication();
+            //app.Run(args);
         }
     }
 }

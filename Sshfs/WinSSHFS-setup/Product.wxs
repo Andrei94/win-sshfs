@@ -49,7 +49,6 @@
 			<Component Id="WinSshFS" Guid="BC9856DD-34B6-4249-9258-39E7F1EE1D8B"  Directory="INSTALLFOLDER">
 				<File Source="$(var.Sshfs.TargetPath)" KeyPath="yes" Checksum="yes" />
         <File Source="$(var.Sshfs.TargetPath).config" />
-        <File Source="$(var.Sshfs.TargetDir)/app.ico" />
       </Component>
       
       <Component Id="SshNet" Guid="95947403-FDD8-4622-99A1-1FF41BB8EB1A"  Directory="INSTALLFOLDER">

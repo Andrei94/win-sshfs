@@ -129,7 +129,7 @@
             this.fieldsPanel.ColumnCount = 3;
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 26.10063F));
             this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 73.89937F));
-            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 26F));
+            this.fieldsPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 47F));
             this.fieldsPanel.Controls.Add(this.proxyHostBox, 1, 10);
             this.fieldsPanel.Controls.Add(this.label12, 0, 10);
             this.fieldsPanel.Controls.Add(this.panel3, 1, 11);
@@ -181,9 +181,9 @@
             // proxyHostBox
             // 
             this.proxyHostBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.proxyHostBox.Location = new System.Drawing.Point(81, 322);
+            this.proxyHostBox.Location = new System.Drawing.Point(76, 322);
             this.proxyHostBox.Name = "proxyHostBox";
-            this.proxyHostBox.Size = new System.Drawing.Size(216, 20);
+            this.proxyHostBox.Size = new System.Drawing.Size(200, 20);
             this.proxyHostBox.TabIndex = 10;
             // 
             // label12
@@ -202,15 +202,15 @@
             this.panel3.Controls.Add(this.proxyPassBox);
             this.panel3.Controls.Add(this.proxyLoginBox);
             this.panel3.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel3.Location = new System.Drawing.Point(81, 351);
+            this.panel3.Location = new System.Drawing.Point(76, 351);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(216, 23);
+            this.panel3.Size = new System.Drawing.Size(200, 23);
             this.panel3.TabIndex = 11;
             // 
             // proxyPassBox
             // 
             this.proxyPassBox.Dock = System.Windows.Forms.DockStyle.Right;
-            this.proxyPassBox.Location = new System.Drawing.Point(111, 0);
+            this.proxyPassBox.Location = new System.Drawing.Point(95, 0);
             this.proxyPassBox.Name = "proxyPassBox";
             this.proxyPassBox.Size = new System.Drawing.Size(105, 20);
             this.proxyPassBox.TabIndex = 1;
@@ -237,9 +237,9 @@
             // 
             // nameBox
             // 
-            this.nameBox.Location = new System.Drawing.Point(81, 3);
+            this.nameBox.Location = new System.Drawing.Point(76, 3);
             this.nameBox.Name = "nameBox";
-            this.nameBox.Size = new System.Drawing.Size(216, 20);
+            this.nameBox.Size = new System.Drawing.Size(200, 20);
             this.nameBox.TabIndex = 0;
             this.nameBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -256,9 +256,9 @@
             // 
             // hostBox
             // 
-            this.hostBox.Location = new System.Drawing.Point(81, 32);
+            this.hostBox.Location = new System.Drawing.Point(76, 32);
             this.hostBox.Name = "hostBox";
-            this.hostBox.Size = new System.Drawing.Size(216, 20);
+            this.hostBox.Size = new System.Drawing.Size(200, 20);
             this.hostBox.TabIndex = 1;
             this.hostBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -275,7 +275,7 @@
             // 
             // portBox
             // 
-            this.portBox.Location = new System.Drawing.Point(81, 61);
+            this.portBox.Location = new System.Drawing.Point(76, 61);
             this.portBox.Name = "portBox";
             this.portBox.Size = new System.Drawing.Size(68, 20);
             this.portBox.TabIndex = 2;
@@ -304,9 +304,9 @@
             // 
             // userBox
             // 
-            this.userBox.Location = new System.Drawing.Point(81, 90);
+            this.userBox.Location = new System.Drawing.Point(76, 90);
             this.userBox.Name = "userBox";
-            this.userBox.Size = new System.Drawing.Size(216, 20);
+            this.userBox.Size = new System.Drawing.Size(200, 20);
             this.userBox.TabIndex = 3;
             this.userBox.Leave += new System.EventHandler(this.box_Leave);
             // 
@@ -318,9 +318,9 @@
             "Password",
             "PrivateKey",
             "Pageant"});
-            this.authCombo.Location = new System.Drawing.Point(81, 119);
+            this.authCombo.Location = new System.Drawing.Point(76, 119);
             this.authCombo.Name = "authCombo";
-            this.authCombo.Size = new System.Drawing.Size(216, 21);
+            this.authCombo.Size = new System.Drawing.Size(200, 21);
             this.authCombo.TabIndex = 4;
             this.authCombo.SelectedIndexChanged += new System.EventHandler(this.authBox_SelectedIndexChanged);
             // 
@@ -330,7 +330,7 @@
             this.label5.Dock = System.Windows.Forms.DockStyle.Left;
             this.label5.Location = new System.Drawing.Point(3, 116);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(69, 29);
+            this.label5.Size = new System.Drawing.Size(63, 29);
             this.label5.TabIndex = 9;
             this.label5.Text = "Authentication method:";
             this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -350,7 +350,7 @@
             // 
             this.panel1.Controls.Add(this.letterBox);
             this.panel1.Controls.Add(this.mountCheck);
-            this.panel1.Location = new System.Drawing.Point(81, 235);
+            this.panel1.Location = new System.Drawing.Point(76, 235);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(182, 23);
             this.panel1.TabIndex = 7;
@@ -384,9 +384,9 @@
             this.directoryBox.Items.AddRange(new object[] {
             ".",
             "/"});
-            this.directoryBox.Location = new System.Drawing.Point(81, 206);
+            this.directoryBox.Location = new System.Drawing.Point(76, 206);
             this.directoryBox.Name = "directoryBox";
-            this.directoryBox.Size = new System.Drawing.Size(216, 21);
+            this.directoryBox.Size = new System.Drawing.Size(200, 21);
             this.directoryBox.TabIndex = 6;
             // 
             // label7
@@ -406,9 +406,9 @@
             this.panel2.Controls.Add(this.privateKeyBox);
             this.panel2.Controls.Add(this.privateKeyButton);
             this.panel2.Controls.Add(this.passwordBox);
-            this.panel2.Location = new System.Drawing.Point(81, 148);
+            this.panel2.Location = new System.Drawing.Point(76, 148);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(216, 52);
+            this.panel2.Size = new System.Drawing.Size(200, 52);
             this.panel2.TabIndex = 5;
             // 
             // passphraseBox
@@ -464,7 +464,7 @@
             this.label8.Dock = System.Windows.Forms.DockStyle.Left;
             this.label8.Location = new System.Drawing.Point(3, 261);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(69, 29);
+            this.label8.Size = new System.Drawing.Size(40, 29);
             this.label8.TabIndex = 17;
             this.label8.Text = "Mount folder:";
             this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -472,9 +472,9 @@
             // mountPointBox
             // 
             this.mountPointBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mountPointBox.Location = new System.Drawing.Point(81, 264);
+            this.mountPointBox.Location = new System.Drawing.Point(76, 264);
             this.mountPointBox.Name = "mountPointBox";
-            this.mountPointBox.Size = new System.Drawing.Size(216, 20);
+            this.mountPointBox.Size = new System.Drawing.Size(200, 20);
             this.mountPointBox.TabIndex = 8;
             // 
             // label10
@@ -497,9 +497,9 @@
             "HTTP",
             "SOCKS4",
             "SOCKS5"});
-            this.proxyType.Location = new System.Drawing.Point(81, 293);
+            this.proxyType.Location = new System.Drawing.Point(76, 293);
             this.proxyType.Name = "proxyType";
-            this.proxyType.Size = new System.Drawing.Size(216, 21);
+            this.proxyType.Size = new System.Drawing.Size(200, 21);
             this.proxyType.TabIndex = 9;
             // 
             // labelKeepAlive
@@ -508,14 +508,14 @@
             this.labelKeepAlive.Dock = System.Windows.Forms.DockStyle.Fill;
             this.labelKeepAlive.Location = new System.Drawing.Point(3, 377);
             this.labelKeepAlive.Name = "labelKeepAlive";
-            this.labelKeepAlive.Size = new System.Drawing.Size(72, 29);
+            this.labelKeepAlive.Size = new System.Drawing.Size(67, 29);
             this.labelKeepAlive.TabIndex = 26;
             this.labelKeepAlive.Text = "KeepAlive (s)";
             this.labelKeepAlive.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // keepAliveIntervalBox
             // 
-            this.keepAliveIntervalBox.Location = new System.Drawing.Point(81, 380);
+            this.keepAliveIntervalBox.Location = new System.Drawing.Point(76, 380);
             this.keepAliveIntervalBox.Maximum = new decimal(new int[] {
             999,
             0,
@@ -529,6 +529,11 @@
             this.keepAliveIntervalBox.Name = "keepAliveIntervalBox";
             this.keepAliveIntervalBox.Size = new System.Drawing.Size(120, 20);
             this.keepAliveIntervalBox.TabIndex = 27;
+            this.keepAliveIntervalBox.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
             // 
             // driveListView
             // 
@@ -769,7 +774,6 @@
             this.mountMenuItem.Text = "Mount";
             this.mountMenuItem.DropDownClosed += new System.EventHandler(this.mountMenuItem_DropDownClosed);
             this.mountMenuItem.DropDownOpening += new System.EventHandler(this.mountMenuItem_DropDownOpening);
-            this.mountMenuItem.DropDown.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.mountMenuItem_PreviewKeyDown);
             // 
             // unmountMenuItem
             // 
@@ -779,7 +783,6 @@
             this.unmountMenuItem.Text = "Unmount";
             this.unmountMenuItem.DropDownClosed += new System.EventHandler(this.unmountMenuItem_DropDownClosed);
             this.unmountMenuItem.DropDownOpening += new System.EventHandler(this.unmountMenuItem_DropDownOpening);
-            this.unmountMenuItem.DropDown.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.unmountMenuItem_PreviewKeyDown);
             // 
             // toolStripSeparator2
             // 
