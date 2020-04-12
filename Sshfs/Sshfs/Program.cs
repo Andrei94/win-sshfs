@@ -10,8 +10,6 @@ namespace Sshfs
 {
     internal static class Program
     {
-        //static SftpManagerApplication app;
-
         /// <summary>
         ///   The main entry point for the application.
         /// </summary>
@@ -36,7 +34,7 @@ namespace Sshfs
 #if DEBUG
 	        args = new[]
 	        {
-		        "files", "22", "username2", "3.121.116.110", "username2", "j/uh8vrH/MH0DwmK5qiENdtnZIpd+RH8"
+		        "files", "22", "username2", "52.59.184.159", "username2", "47TQJDxKFmlzvrltL48dtV8rHyTU8uNe"
             };
 #endif
             try
@@ -46,12 +44,6 @@ namespace Sshfs
             catch (Exception)
             {
             }
-            while (true)
-            {
-                Thread.Sleep(TimeSpan.FromDays(20));
-            }
-            //SftpManagerApplication app = new SftpManagerApplication();
-            //app.Run(args);
         }
     }
 }
