@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Sshfs
 {
@@ -22,14 +21,18 @@ namespace Sshfs
 				Username = args[4],
 				Password = args[5]
 			};
-			Task.Factory.StartNew(() => {
-				do
+			do
+			{
+				try
 				{
 					drive.Mount();
-					Thread.Sleep(TimeSpan.FromSeconds(15));
 				}
-				while (drive.Status != DriveStatus.Mounted);
-			});
+				catch(Exception)
+				{
+				}
+				Thread.Sleep(TimeSpan.FromSeconds(15));
+			}
+			while(drive.Status != DriveStatus.Mounted);
 			while (true)
 			{
 				Thread.Sleep(TimeSpan.FromMinutes(30));
