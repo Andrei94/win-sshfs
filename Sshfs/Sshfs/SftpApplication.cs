@@ -12,7 +12,7 @@ namespace Sshfs
 			{
 				Name = args[0],
 				Port = Convert.ToInt32(args[1]),
-				MountPoint = string.Format("/sftpg/{0}/data/", args[2]),
+				MountPoint = $"/sftpg/{args[2]}/data/",
 				Host = args[3],
 				Letter = Utilities.GetAvailableDrives().Last(),
 				Root = "/data",
@@ -30,13 +30,14 @@ namespace Sshfs
 				catch(Exception)
 				{
 				}
+
 				Thread.Sleep(TimeSpan.FromSeconds(15));
-			}
-			while(drive.Status != DriveStatus.Mounted);
-			while (true)
+			} while(drive.Status != DriveStatus.Mounted);
+
+			while(true)
 			{
 				Thread.Sleep(TimeSpan.FromMinutes(30));
-				while (drive.Status != DriveStatus.Mounted)
+				while(drive.Status != DriveStatus.Mounted)
 					drive.Mount();
 			}
 		}
