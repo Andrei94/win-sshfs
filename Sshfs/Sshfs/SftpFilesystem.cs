@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.Caching;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -13,6 +15,7 @@ using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 using FileAccess = DokanNet.FileAccess;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace Sshfs
 {
@@ -39,7 +42,6 @@ namespace Sshfs
 		private readonly bool _useOfflineAttribute;
 		private readonly bool _debugMode;
 
-
 		private int _userId;
 		private string _idCommand = "id";
 		private string _dfCommand = "df";
@@ -49,6 +51,9 @@ namespace Sshfs
 		private readonly int _directoryCacheTimeout;
 
 		private readonly string _volumeLabel;
+
+		private HttpClient httpClient;
+		private readonly ConcurrentDictionary<string, bool> lockedFiles = new ConcurrentDictionary<string, bool>();
 
 		#endregion
 
@@ -76,7 +81,7 @@ namespace Sshfs
 			base.OnConnected();
 
 			_sshClient = new SshClient(ConnectionInfo);
-
+			httpClient = new HttpClient();
 			this.Log("Connected %s", _volumeLabel);
 			_sshClient.Connect();
 
@@ -390,6 +395,13 @@ namespace Sshfs
 			   fileName.EndsWith("autorun.inf", StringComparison.OrdinalIgnoreCase))
 				return NtStatus.NoSuchFile;
 
+			if(!info.IsDirectory && (mode == FileMode.Create || mode == FileMode.CreateNew) &&
+			   !lockedFiles.ContainsKey(fileName))
+			{
+				LockFileForWriting(fileName.Substring(1));
+				lockedFiles.TryAdd(fileName, true);
+			}
+
 			LogFSActionInit("OpenFile", fileName, (SftpContext) info.Context, "Mode:{0} Options:{1}", mode, options);
 
 			string path = GetUnixPath(fileName);
@@ -429,7 +441,6 @@ namespace Sshfs
 								return NtStatus.Error; //this will result in calling DeleteFile in Windows Explorer
 
 							info.Context = new SftpContext(sftpFileAttributes, false);
-
 							LogFSActionOther("OpenFile", fileName, (SftpContext) info.Context, "Dir open or get attrs");
 							return NtStatus.Success;
 						}
@@ -655,7 +666,15 @@ namespace Sshfs
 
 			/* cache reset for dir close is not good idea, will read it very soon again */
 			if(!info.IsDirectory)
+			{
 				CacheReset(GetUnixPath(fileName));
+				if(lockedFiles.ContainsKey(fileName))
+				{
+					UnlockFileForWriting(fileName.Substring(1));
+					bool isLocked;
+					lockedFiles.TryRemove(fileName, out isLocked);
+				}
+			}
 		}
 
 		NtStatus IDokanOperations.ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset,
@@ -739,7 +758,6 @@ namespace Sshfs
                 tmpFile.Write(buffer, 0, buffer.Length);
                 tmpFile.Close();
 #endif
-
 				if(info.Context == null) // who would guess
 				{
 					SftpFileStream handle = Open(GetUnixPath(fileName), FileMode.Create);
@@ -771,6 +789,20 @@ namespace Sshfs
 			LogFSActionSuccess("WriteFile", fileName, (SftpContext) info.Context, "Ofs:{1} Len:{0} Written:{2}",
 				buffer.Length, offset, bytesWritten);
 			return NtStatus.Success;
+		}
+
+		private async void LockFileForWriting(string file)
+		{
+			await httpClient.PutAsync($"http://{ConnectionInfo.Host}:8080/fileState/lock",
+				new StringContent(JsonSerializer.Serialize(new LockRequest {file = file}), Encoding.UTF8,
+					"application/json"));
+		}
+
+		private async void UnlockFileForWriting(string file)
+		{
+			await httpClient.PutAsync($"http://{ConnectionInfo.Host}:8080/fileState/unlock",
+				new StringContent(JsonSerializer.Serialize(new LockRequest {file = file}), Encoding.UTF8,
+					"application/json"));
 		}
 
 		NtStatus IDokanOperations.FlushFileBuffers(string fileName, DokanFileInfo info)
@@ -1391,7 +1423,8 @@ namespace Sshfs
 				if(dfCheck)
 				{
 					// POSIX standard df
-					using(var cmd = _sshClient.CreateCommand(string.Format(_dfCommand + " -Pk  {0}", _rootpath), Encoding.UTF8))
+					using(var cmd = _sshClient.CreateCommand(string.Format(_dfCommand + " -Pk  {0}", _rootpath),
+						Encoding.UTF8))
 					{
 						cmd.Execute();
 						if(cmd.ExitStatus == 0)
@@ -1403,6 +1436,7 @@ namespace Sshfs
 						}
 					}
 				}
+
 				CacheAddDiskInfo(new Tuple<long, long, long>(free, total, used),
 					DateTimeOffset.UtcNow.AddMinutes(3));
 			}
