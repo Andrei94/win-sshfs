@@ -97,7 +97,7 @@ namespace Sshfs
 					}
 
 					mountedLetter = Letter;
-					int threadCount = 8;
+					int threadCount = 32;
 #if DEBUG
 					threadCount = 1;
 #endif
