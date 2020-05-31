@@ -15,6 +15,7 @@ using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 using FileAccess = DokanNet.FileAccess;
 using System.Runtime.InteropServices;
+using System.Security.Authentication;
 using System.Text.Json;
 
 namespace Sshfs
@@ -81,7 +82,11 @@ namespace Sshfs
 			base.OnConnected();
 
 			_sshClient = new SshClient(ConnectionInfo);
-			httpClient = new HttpClient();
+			var httpMessageHandler = new HttpClientHandler
+			{
+				SslProtocols = SslProtocols.Tls12
+			};
+			httpClient = new HttpClient(httpMessageHandler);
 			this.Log("Connected %s", _volumeLabel);
 			_sshClient.Connect();
 
@@ -800,14 +805,14 @@ namespace Sshfs
 
 		private async void LockFileForWriting(string file)
 		{
-			await httpClient.PutAsync($"http://{ConnectionInfo.Host}:8080/fileState/lock",
+			await httpClient.PutAsync($"https://{ConnectionInfo.Host}:8443/fileState/lock",
 				new StringContent(JsonSerializer.Serialize(new LockRequest {file = file}), Encoding.UTF8,
 					"application/json"));
 		}
 
 		private async void UnlockFileForWriting(string file)
 		{
-			await httpClient.PutAsync($"http://{ConnectionInfo.Host}:8080/fileState/unlock",
+			await httpClient.PutAsync($"https://{ConnectionInfo.Host}:8443/fileState/unlock",
 				new StringContent(JsonSerializer.Serialize(new LockRequest {file = file}), Encoding.UTF8,
 					"application/json"));
 		}
