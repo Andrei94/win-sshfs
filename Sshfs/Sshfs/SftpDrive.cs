@@ -156,7 +156,7 @@ namespace Sshfs
 		{
 			this.stopReconnect();
 
-			this.reconnectThread = new Thread(new ThreadStart(reconnectJob));
+			this.reconnectThread = new Thread(reconnectJob);
 			this.reconnectThread.Start();
 		}
 
