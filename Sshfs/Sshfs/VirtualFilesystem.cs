@@ -611,7 +611,7 @@ namespace Sshfs
 			features = FileSystemFeatures.CasePreservedNames | FileSystemFeatures.CaseSensitiveSearch |
 			           FileSystemFeatures.SupportsRemoteStorage | FileSystemFeatures.UnicodeOnDisk |
 			           FileSystemFeatures.SupportsObjectIDs;
-			maximumComponentLength = uint.MaxValue;
+			maximumComponentLength = 256;
 
 			return NtStatus.Success;
 		}

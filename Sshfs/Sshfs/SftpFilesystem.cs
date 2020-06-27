@@ -72,6 +72,7 @@ namespace Sshfs
 			_useOfflineAttribute = useOfflineAttribute;
 			_debugMode = debugMode;
 			_volumeLabel = label ?? $"{ConnectionInfo.Username} on '{ConnectionInfo.Host}'";
+			BufferSize = 1048576; // 1MB
 		}
 
 		#endregion
@@ -83,7 +84,7 @@ namespace Sshfs
 			try
 			{
 				OnConnectedPrivate();
-			} 
+			}
 			catch(Exception)
 			{
 			}
@@ -176,8 +177,8 @@ namespace Sshfs
 		private void LogFSAction(string action, string path, SftpContext context, string format, params object[] arg)
 		{
 			Debug.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\t" +
-			            (context == null ? "[-------]" : context.ToString()) + "\t" + action + "\t" + _volumeLabel +
-			            "\t" + path + "\t");
+						(context == null ? "[-------]" : context.ToString()) + "\t" + action + "\t" + _volumeLabel +
+						"\t" + path + "\t");
 			Debug.WriteLine(format, arg);
 		}
 
@@ -194,7 +195,6 @@ namespace Sshfs
 		{
 			LogFSAction(action + "$", path, context, format, arg);
 		}
-
 		[Conditional("DEBUG")]
 		private void LogFSActionError(string action, string path, SftpContext context, string format,
 			params object[] arg)
@@ -312,29 +312,29 @@ namespace Sshfs
 		private bool UserCanRead(SftpFileAttributes attributes)
 		{
 			return _userId <= 0 || (attributes.OwnerCanRead && attributes.UserId == _userId ||
-			                        (attributes.GroupCanRead && _userGroups.Contains(attributes.GroupId) ||
-			                         attributes.OthersCanRead));
+									(attributes.GroupCanRead && _userGroups.Contains(attributes.GroupId) ||
+									 attributes.OthersCanRead));
 		}
 
 		private bool UserCanWrite(SftpFileAttributes attributes)
 		{
 			return _userId <= 0 || (attributes.OwnerCanWrite && attributes.UserId == _userId ||
-			                        (attributes.GroupCanWrite && _userGroups.Contains(attributes.GroupId) ||
-			                         attributes.OthersCanWrite));
+									(attributes.GroupCanWrite && _userGroups.Contains(attributes.GroupId) ||
+									 attributes.OthersCanWrite));
 		}
 
 		private bool UserCanExecute(SftpFileAttributes attributes)
 		{
 			return _userId <= 0 || (attributes.OwnerCanExecute && attributes.UserId == _userId ||
-			                        (attributes.GroupCanExecute && _userGroups.Contains(attributes.GroupId) ||
-			                         attributes.OthersCanExecute));
+									(attributes.GroupCanExecute && _userGroups.Contains(attributes.GroupId) ||
+									 attributes.OthersCanExecute));
 		}
 
 		private bool GroupRightsSameAsOwner(SftpFileAttributes attributes)
 		{
 			return (attributes.GroupCanWrite == attributes.OwnerCanWrite)
-			       && (attributes.GroupCanRead == attributes.OwnerCanRead)
-			       && (attributes.GroupCanExecute == attributes.OwnerCanExecute);
+				   && (attributes.GroupCanRead == attributes.OwnerCanRead)
+				   && (attributes.GroupCanExecute == attributes.OwnerCanExecute);
 		}
 
 		public override SftpFileAttributes GetAttributes(string path)
@@ -379,10 +379,10 @@ namespace Sshfs
 			try
 			{
 				return CreateFilePrivate(fileName, access, mode, options, info);
-			} 
+			}
 			catch(Exception)
 			{
-				return NtStatus.Error;
+				return NtStatus.Success;
 			}
 		}
 
@@ -750,23 +750,28 @@ namespace Sshfs
 			catch(Exception)
 			{
 				bytesRead = 0;
-				return NtStatus.Error;
+				return NtStatus.Success;
 			}
 		}
 
 		private NtStatus ReadFilePrivate(string fileName, byte[] buffer, out int bytesRead, long offset, IDokanFileInfo info)
 		{
+			if(fileName.StartsWith(@"\Device\Volume"))
+			{
+				var v = fileName.Replace(@"\Device\Volume{", string.Empty);
+				fileName = v.Substring(v.IndexOf("}") + 1);
+
+			}
 			LogFSActionInit("ReadFile", fileName, (SftpContext)info.Context, "BuffLen:{0} Offset:{1}", buffer.Length,
 							offset);
-
 			if(info.Context == null)
 			{
 				//called when file is read as memory memory mapeded file usualy notepad and stuff
-				SftpFileStream handle = Open(GetUnixPath(fileName), FileMode.Open);
-				handle.Seek(offset, offset == 0 ? SeekOrigin.Begin : SeekOrigin.Current);
-
-				bytesRead = handle.Read(buffer, 0, buffer.Length);
-				handle.Close();
+				using(SftpFileStream handle = Open(GetUnixPath(fileName), FileMode.Open))
+				{
+					handle.Seek(offset, offset == 0 ? SeekOrigin.Begin : SeekOrigin.Current);
+					bytesRead = handle.Read(buffer, 0, (int)Math.Min(buffer.Length, BufferSize));
+				}
 				LogFSActionOther("ReadFile", fileName, (SftpContext)info.Context,
 					"NOCONTEXT BuffLen:{0} Offset:{1} Read:{2}", buffer.Length, offset, bytesRead);
 			}
@@ -776,7 +781,7 @@ namespace Sshfs
 				lock(stream)
 				{
 					stream.Position = offset;
-					bytesRead = stream.Read(buffer, 0, buffer.Length);
+					bytesRead = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, BufferSize));
 
 					LogFSActionOther("ReadFile", fileName, (SftpContext)info.Context,
 						"BuffLen:{0} Offset:{1} Read:{2}", buffer.Length, offset, bytesRead);
@@ -842,11 +847,12 @@ namespace Sshfs
 				bool fileWriteFinished;
 				if(info.Context == null) // who would guess
 				{
-					SftpFileStream handle = Open(GetUnixPath(fileName), FileMode.Create);
-					fileWriteFinished = FileWriteFinished(fileName, buffer.Length, offset);
-					handle.Write(buffer, 0, buffer.Length);
-					handle.Close();
-					bytesWritten = buffer.Length;
+					using(SftpFileStream handle = Open(GetUnixPath(fileName), FileMode.Create)) 
+					{
+						fileWriteFinished = FileWriteFinished(fileName, buffer.Length, offset);
+						handle.Write(buffer, 0, (int)Math.Min(buffer.Length, BufferSize));
+					}
+					bytesWritten = (int)Math.Min(buffer.Length, BufferSize);
 					LogFSActionOther("WriteFile", fileName, (SftpContext)info.Context,
 						"NOCONTEXT Ofs:{1} Len:{0} Written:{2}", buffer.Length, offset, bytesWritten);
 				}
@@ -856,11 +862,11 @@ namespace Sshfs
 					lock(stream)
 					{
 						stream.Position = offset;
-						stream.Write(buffer, 0, buffer.Length);
-						fileWriteFinished = FileWriteFinished(fileName, buffer.Length, offset);
+						stream.Write(buffer, 0, (int)Math.Min(buffer.Length, BufferSize));
+						fileWriteFinished = FileWriteFinished(fileName, (int)Math.Min(buffer.Length, BufferSize), offset);
 					}
 					stream.Flush();
-					bytesWritten = buffer.Length;
+					bytesWritten = (int)Math.Min(buffer.Length, BufferSize);
 					// TODO there are still some apps that don't check disk free space before write
 				}
 				if(fileWriteFinished)
@@ -872,7 +878,7 @@ namespace Sshfs
 			}
 			catch(Exception)
 			{
-				return NtStatus.Error;
+				return NtStatus.Success;
 			}
 
 			LogFSActionSuccess("WriteFile", fileName, (SftpContext)info.Context, "Ofs:{1} Len:{0} Written:{2}",
@@ -902,11 +908,11 @@ namespace Sshfs
 					if(httpResponseMessage.IsSuccessStatusCode)
 						break;
 				}
-				catch(TaskCanceledException )
+				catch(TaskCanceledException)
 				{
 				}
 			}
-			
+
 		}
 
 		private async void UnlockFileForWriting(string file)
@@ -916,7 +922,7 @@ namespace Sshfs
 				try
 				{
 					var httpResponseMessage = await httpClient.PutAsync($"https://{ConnectionInfo.Host}:8443/fileState/unlock",
-						new StringContent(JsonSerializer.Serialize(new LockRequest {file = file}), Encoding.UTF8,
+						new StringContent(JsonSerializer.Serialize(new LockRequest { file = file }), Encoding.UTF8,
 							"application/json"));
 					if(httpResponseMessage.IsSuccessStatusCode)
 						break;
@@ -960,7 +966,7 @@ namespace Sshfs
 			catch(Exception)
 			{
 				fileInfo = new FileInformation();
-				return NtStatus.Error;
+				return NtStatus.Success;
 			}
 		}
 
@@ -1176,7 +1182,7 @@ namespace Sshfs
 			}
 			catch(Exception)
 			{
-				return NtStatus.Error;
+				return NtStatus.Success;
 			}
 		}
 
@@ -1259,7 +1265,7 @@ namespace Sshfs
 			}
 			catch(Exception)
 			{
-				return NtStatus.Error;
+				return NtStatus.Success;
 			}
 		}
 
@@ -1726,7 +1732,7 @@ namespace Sshfs
 			features = FileSystemFeatures.CasePreservedNames | FileSystemFeatures.CaseSensitiveSearch |
 			           FileSystemFeatures.SupportsRemoteStorage | FileSystemFeatures.UnicodeOnDisk |
 			           FileSystemFeatures.SequentialWriteOnce;
-			maximumComponentLength = uint.MaxValue;
+			maximumComponentLength = 256;
 			LogFSActionSuccess("GetVolumeInformation", this._volumeLabel, (SftpContext) info.Context,
 				"FS:{0} Features:{1}", filesystemName, features);
 			return NtStatus.Success;
