@@ -1,5 +1,4 @@
-﻿
-#region
+﻿#region
 
 using System;
 using System.Diagnostics;
@@ -12,245 +11,224 @@ using System.Threading.Tasks;
 using DokanNet;
 using Sshfs.Properties;
 using System.Collections.Generic;
+
 #endregion
 
 namespace Sshfs
 {
-    [Serializable]
-    public class VirtualDrive : IDisposable, ISerializable
-    {
-        private readonly CancellationTokenSource _mountCancel = new CancellationTokenSource();
-        private readonly AutoResetEvent _pauseEvent = new AutoResetEvent(false);
-        private readonly CancellationTokenSource _threadCancel = new CancellationTokenSource();
-        private Thread _mountThread;
-        private Exception _lastExeption;
-        private bool _exeptionThrown;
+	[Serializable]
+	public class VirtualDrive : IDisposable, ISerializable
+	{
+		private CancellationTokenSource _mountCancel;
+		private AutoResetEvent _pauseEvent;
+		private CancellationTokenSource _threadCancel;
+		private Thread _mountThread;
+		private Exception _lastExeption;
+		private bool _exeptionThrown;
 
-        private VirtualFilesystem _filesystem;
-        private List<SftpDrive> _drives = new List<SftpDrive>();
+		private VirtualFilesystem _filesystem;
+		private List<SftpDrive> _drives = new List<SftpDrive>();
 
-        public string Name { get; set; }
+		public string Name { get; set; }
+		public char Letter { get; set; }
+		private char mountedLetter { get; set; }
+		public DriveStatus Status { get; private set; }
 
-        public char Letter { get; set; }
+		public VirtualDrive()
+		{
+		}
 
-        public DriveStatus Status { get; private set; }
+		internal void AddSubFS(SftpDrive sftpDrive)
+		{
+			_drives.Add(sftpDrive);
+			_filesystem?.AddSubFS(sftpDrive);
+		}
 
-        //private readonly Dictionary<string, SftpFilesystem> _subsytems = new Dictionary<string,SftpFilesystem>();
+		internal void RemoveSubFS(SftpDrive sftpDrive)
+		{
+			_drives.Remove(sftpDrive);
+			_filesystem?.RemoveSubFS(sftpDrive);
+		}
 
+		private void OnStatusChanged(EventArgs args)
+		{
+			StatusChanged?.Invoke(this, args);
+		}
 
+		public event EventHandler<EventArgs> StatusChanged;
 
-        public VirtualDrive() { }
+		private void SetupFilesystem()
+		{
+			Debug.WriteLine("SetupVirtualFilesystem");
+		}
 
+		private void SetupMountThread()
+		{
+			if(_mountThread != null) return;
+			Debug.WriteLine("Thread:Created");
+			_threadCancel = new CancellationTokenSource();
+			_pauseEvent = new AutoResetEvent(false);
+			_mountCancel = new CancellationTokenSource();
+			_mountThread = new Thread(MountLoop) {IsBackground = true};
+			_mountThread.Start();
+		}
 
-        internal void AddSubFS(SftpDrive sftpDrive)
-        {
-            _drives.Add(sftpDrive);
-            if (_filesystem!=null)
-                _filesystem.AddSubFS(sftpDrive);
-        }
+		private void MountLoop()
+		{
+			while(true)
+			{
+				Debug.WriteLine("Thread:Pause");
 
-        internal void RemoveSubFS(SftpDrive sftpDrive)
-        {
-            _drives.Remove(sftpDrive);
-            if (_filesystem!=null)
-                _filesystem.RemoveSubFS(sftpDrive);
-        }
+				_pauseEvent.WaitOne(-1);
+				if(_threadCancel.IsCancellationRequested)
+				{
+					Debug.WriteLine("Thread:Cancel");
+					break;
+				}
 
+				Debug.WriteLine("Thread:Mount");
 
-        private void OnStatusChanged(EventArgs args)
-        {
-            if (StatusChanged != null)
-            {
-                StatusChanged(this, args);
-            }
-        }
+				try
+				{
+					_filesystem = new VirtualFilesystem("WinSshFS spool");
+					foreach(var drive in _drives.Where(drive => drive.MountPoint != ""))
+					{
+						_filesystem.AddSubFS(drive);
+					}
 
-        public event EventHandler<EventArgs> StatusChanged;
+					mountedLetter = Letter;
+					int threadCount = 32;
+#if DEBUG
+					threadCount = 1;
+#endif
+					_filesystem.Mount($"{mountedLetter}:\\",
+						Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive : DokanOptions.RemovableDrive,
+						threadCount);
+				}
+				catch(Exception e)
+				{
+					_lastExeption = e;
+					_exeptionThrown = true;
+					_mountCancel.Cancel();
+				}
 
-
-
-        private void SetupFilesystem()
-        {
-            Debug.WriteLine("SetupVirtualFilesystem");
-
-            
-        }
-
-        private void SetupMountThread()
-        {
-            if (_mountThread == null)
-            {
-                Debug.WriteLine("Thread:Created");
-                _mountThread = new Thread(MountLoop) { IsBackground = true };
-                _mountThread.Start();
-            }
-        }
-
-        private void MountLoop()
-        {
-            while (true)
-            {
-                Debug.WriteLine("Thread:Pause");
-
-                _pauseEvent.WaitOne(-1);
-                if (_threadCancel.IsCancellationRequested)
-                {
-                    Debug.WriteLine("Thread:Cancel");
-                    break;
-                }
-
-                Debug.WriteLine("Thread:Mount");
-
-
-                try
-                {
-                    _filesystem = new VirtualFilesystem("WinSshFS spool");
-                    foreach (SftpDrive drive in _drives)
-                    {
-                        _filesystem.AddSubFS(drive);
-                    }
-
-                    _filesystem.Mount(String.Format("{0}:\\", Letter), Settings.Default.UseNetworkDrive ? DokanOptions.NetworkDrive | DokanOptions.KeepAlive : DokanOptions.RemovableDrive | DokanOptions.KeepAlive);
-                }
-                catch (Exception e)
-                {
-
-                    _lastExeption = e;
-                    _exeptionThrown = true;
-                    _mountCancel.Cancel();
-                }
-                Status = DriveStatus.Unmounted;
-                if (!_exeptionThrown)
-                {
-
-                    OnStatusChanged(EventArgs.Empty);
-                }
-
-            }
-        }
-        
-
-        [MethodImpl(MethodImplOptions.Synchronized)]
-        public void Mount()
-        {
-            Debug.WriteLine("Mount");
-
-            if (Directory.GetLogicalDrives().Any(drive => drive[0] == Letter))
-            {
-                throw new Exception("Drive with the same letter exists");
-            }
+				Status = DriveStatus.Unmounted;
+				this._mountThread = null;
+				if(!_exeptionThrown)
+					OnStatusChanged(EventArgs.Empty);
+			}
+		}
 
 
-            Status = DriveStatus.Mounting;
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		public void Mount()
+		{
+			Debug.WriteLine("Mount");
 
-            try
-            {
-                SetupFilesystem();
-            }
-            catch
-            {
+			if(Directory.GetLogicalDrives().Any(drive => drive[0] == Letter))
+				throw new Exception("Drive with the same letter exists");
 
-                Status = DriveStatus.Unmounted;
-                throw;
-            }
+			Status = DriveStatus.Mounting;
 
-            SetupMountThread();
+			try
+			{
+				SetupFilesystem();
+			}
+			catch
+			{
+				Status = DriveStatus.Unmounted;
+				throw;
+			}
 
+			SetupMountThread();
 
-            
-            var mountEvent = Task.Factory.StartNew(() =>
-            {
-                while (!_mountCancel.IsCancellationRequested &&
-                       Directory.GetLogicalDrives().All(
-                           drive => drive[0] != Letter))
-                {
-                    Thread.Sleep(200);
-                }
-            }, _mountCancel.Token);
+			var mountEvent = Task.Factory.StartNew(() =>
+			{
+				while(!_mountCancel.IsCancellationRequested &&
+				      Directory.GetLogicalDrives().All(
+					      drive => drive[0] != Letter))
+					Thread.Sleep(200);
+			}, _mountCancel.Token);
 
+			_pauseEvent.Set();
 
-            _pauseEvent.Set();
+			mountEvent.Wait();
 
-            mountEvent.Wait();
+			if(_exeptionThrown)
+			{
+				_exeptionThrown = false;
+				throw _lastExeption;
+			}
 
-            if (_exeptionThrown)
-            {
+			if(Settings.Default.UseNetworkDrive)
+				Utilities.SetNetworkDriveName("WinSshFS spool drive", Name);
+			Status = DriveStatus.Mounted;
+			OnStatusChanged(EventArgs.Empty);
+		}
 
-                _exeptionThrown = false;
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		public void Unmount()
+		{
+			_threadCancel?.Cancel();
+			_pauseEvent?.Set();
 
-                throw _lastExeption;
-            }
-            if (Settings.Default.UseNetworkDrive)
-                Utilities.SetNetworkDriveName("WinSshFS spool drive" , Name);
-            Status = DriveStatus.Mounted;
-            OnStatusChanged(EventArgs.Empty);
-        }
+			Debug.WriteLine("Unmount");
 
-        [MethodImpl(MethodImplOptions.Synchronized)]
-        public void Unmount()
-        {
-            Debug.WriteLine("Unmount");
+			Status = DriveStatus.Unmounting;
+			try
+			{
+				Dokan.RemoveMountPoint($"{mountedLetter}:\\");
+			}
+			catch
+			{
+				//Status = DriveStatus.Unmounted;
+				//  OnStatusChanged(EventArgs.Empty);
+			}
+			finally
+			{
+				_filesystem = null;
+			}
+		}
 
-            Status = DriveStatus.Unmounting;
-            try
-            {
-                // Dokan.Unmount(Letter);
-                Dokan.RemoveMountPoint(String.Format("{0}:\\", Letter));
-            }
-            catch
-            {
-                //Status = DriveStatus.Unmounted;
-                //  OnStatusChanged(EventArgs.Empty);
-            }
-            finally
-            {
-                _filesystem = null;
-            }
+		public override string ToString()
+		{
+			return $"{Name}[{Letter}:]";
+		}
 
-        }
+		#region Implementation of IDisposable
 
-        public override string ToString()
-        {
-            return String.Format("{0}[{1}:]", Name, Letter);
-        }
-        #region Implementation of IDisposable
+		public void Dispose()
+		{
+			Debug.WriteLine("Dispose");
 
-        public void Dispose()
-        {
-            Debug.WriteLine("Dispose");
+			try
+			{
+				Dokan.RemoveMountPoint($"{Letter}:\\");
+			}
+			catch
+			{
+				Status = DriveStatus.Unmounted;
+			}
+			finally
+			{
+				_filesystem = null;
+			}
+		}
 
-            try
-            {
-                Dokan.RemoveMountPoint(String.Format("{0}:\\", Letter));
-            }
-            catch
-            {
-                Status = DriveStatus.Unmounted;
-            }
-            finally
-            {
-                _filesystem = null;
-            }
-        }
+		#endregion
 
-        #endregion
+		#region Implementation of ISerializable
 
-        #region Implementation of ISerializable
+		public VirtualDrive(SerializationInfo info, StreamingContext context)
+		{
+			Letter = info.GetChar("letter");
+		}
 
-        public VirtualDrive(SerializationInfo info,
-                         StreamingContext context)
-        {
-            Letter = info.GetChar("letter");
-        }
+		public void GetObjectData(SerializationInfo info, StreamingContext context)
+		{
+			info.AddValue("letter", Letter);
+		}
 
-
-
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("letter", Letter);
-        }
-
-        #endregion
-
-    }
+		#endregion
+	}
 }
